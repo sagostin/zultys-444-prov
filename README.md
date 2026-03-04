@@ -1,0 +1,61 @@
+# Zultys Provisioning Proxy
+
+This application acts as an intermediate proxy to resolve certificate and provisioning path issues for Zultys IP phones. It listens on a custom port (default 444), rewrites the legacy provisioning path, and forwards the request to the PBX's standard HTTPS port (443).
+
+## Features
+
+- **Port Redirection**: Accepts traffic on port 444 (or custom) and forwards to port 443.
+- **Dynamic Host Targeting**: Automatically detects the requested Host header (e.g., `customer.zultys.example.com:444`) and targets the *same host* on port 443 (`customer.zultys.example.com:443`). This supports multi-tenant deployments.
+- **Path Rewriting**: Automatically rewrites requests from `/httpsphone2/` to `/httpsphone/`.
+- **Header Preservation**: Forwards critical headers like `User-Agent` to the PBX.
+- **TLS Termination**: Handles HTTPS connections from phones using a provided certificate.
+
+## Prerequisites
+
+- **Go**: 1.18 or later (to build).
+- **SSL Certificate**: A valid (or self-signed, depending on phone trust store) certificate pair (`server.crt`, `server.key`) for the server hostname.
+
+## Build
+
+```bash
+go build -o provisioning-proxy
+```
+
+## Usage
+
+Run the binary on your server. You may need `sudo` to bind to privileged ports (though 444 is usually non-privileged).
+
+```bash
+./provisioning-proxy [flags]
+```
+
+### Flags
+
+- `-listen`: Address/Port to listen on (default `":444"`).
+- `-cert`: Path to SSL certificate file (default `"server.crt"`).
+- `-key`: Path to SSL key file (default `"server.key"`).
+- `-insecure`: Skip upstream TLS verification (default `false`). Useful if the PBX itself has an expired or self-signed cert effectively ignored by the proxy.
+
+### Example
+
+```bash
+./provisioning-proxy -listen :8443 -cert mycert.pem -key mykey.pem
+```
+
+## Deployment Architecture
+
+1.  **Server**: Deploy this binary on a server accessible to your phones.
+2.  **DNS/Routing**: Ensure that traffic destined for the PBX on port 444 is routed to this server's IP.
+    *   *Option A (DNS)*: Change the A record for the PBX hostname to point to this proxy server (if ports 443/80 are also handled or passed through).
+    *   *Option B (NAT/Firewall)*: Use a firewall rule to Destination NAT (DNAT) traffic for `original-pbx-ip:444` to `proxy-server-ip:444`.
+3.  **Firewall**: Open the listening port (e.g., 444) on the proxy server's firewall.
+
+## Logic Flow
+
+1.  **Phone Request**: `GET https://zultys.domain.com:444/httpsphone2/MACADDR`
+2.  **Proxy Intercept**:
+    *   Reads Host: `zultys.domain.com:444`
+    *   Rewrites Host Target: `zultys.domain.com:443`
+    *   Rewrites Path: `/httpsphone2/` -> `/httpsphone/`
+3.  **Upstream Forward**: `GET https://zultys.domain.com:443/httpsphone/MACADDR`
+4.  **Response**: Streams configuration back to phone.
