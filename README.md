@@ -15,6 +15,27 @@ This application acts as an intermediate proxy to resolve certificate and provis
 - **Go**: 1.18 or later (to build).
 - **SSL Certificate**: A valid (or self-signed, depending on phone trust store) certificate pair (`server.crt`, `server.key`) for the server hostname.
 
+## Certificate Setup
+
+The proxy just needs *any* TLS certificate to complete the HTTPS handshake with the phones — the CN/hostname doesn't need to match since this is a multi-tenant proxy serving requests for multiple PBX servers. The phones don't strictly validate the certificate.
+
+Generate a generic self-signed cert valid for 10 years:
+
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout server.key -out server.crt \
+  -days 3650 \
+  -subj "/CN=zultys-provisioning-proxy"
+```
+
+This produces `server.crt` and `server.key` in the current directory — the default paths the proxy expects.
+
+Verify it was created:
+
+```bash
+openssl x509 -in server.crt -noout -text | head -20
+```
+
 ## Build
 
 ```bash
