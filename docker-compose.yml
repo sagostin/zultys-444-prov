@@ -1,0 +1,9 @@
+services:
+  provisioning-proxy:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "444:444"
+    volumes:
+      - ./certs:/certs:ro
+    command: [ "-cert", "/certs/server.crt", "-key", "/certs/server.key", "-insecure" ]

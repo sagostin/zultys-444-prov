@@ -36,7 +36,33 @@ Verify it was created:
 openssl x509 -in server.crt -noout -text | head -20
 ```
 
-## Build
+## Docker
+
+### 1. Generate Certs
+
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout certs/server.key -out certs/server.crt \
+  -days 3650 \
+  -subj "/CN=zultys-provisioning-proxy"
+```
+
+### 2. Build & Run
+
+```bash
+docker compose up -d --build
+```
+
+The container will listen on port 444 and auto-restart on failure. Certs are mounted read-only from `./certs/`.
+
+### 3. Logs
+
+```bash
+docker compose logs -f
+```
+
+## Build (Native)
 
 ```bash
 go build -o provisioning-proxy
