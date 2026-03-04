@@ -99,10 +99,10 @@ Run the binary on your server. You may need `sudo` to bind to privileged ports (
 
 ## Logic Flow
 
-1.  **Phone Request**: `GET https://zultys.domain.com:444/httpsphone2/MACADDR`
+1.  **Phone Request**: `GET https://customer.host.ca:444/httpsphone2/<remainder>`
 2.  **Proxy Intercept**:
-    *   Reads Host: `zultys.domain.com:444`
-    *   Rewrites Host Target: `zultys.domain.com:443`
-    *   Rewrites Path: `/httpsphone2/` -> `/httpsphone/`
-3.  **Upstream Forward**: `GET https://zultys.domain.com:443/httpsphone/MACADDR`
+    *   Reads Host: `customer.host.ca:444`
+    *   Rewrites Host Target: `customer.host.ca:443`
+    *   Rewrites Path: `/httpsphone2/` → `/httpsphone/` (the remainder is passed through as-is)
+3.  **Upstream Forward**: `GET https://customer.host.ca:443/httpsphone/<remainder>`
 4.  **Response**: Streams configuration back to phone.
